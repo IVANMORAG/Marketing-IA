@@ -12,6 +12,7 @@ import subprocess
 import time
 import threading
 
+
 app = Flask(__name__)
 
 # Configuración (puedes mover esto a un archivo Config.py si prefieres)
@@ -137,25 +138,42 @@ def task3():
 def task4():
     df = load_data()
     
-    # Matriz de correlación
+    # Matriz de correlación (existente)
     corr_matrix = df.iloc[:, :10].corr().reset_index()
     corr_data = []
     for _, row in corr_matrix.iterrows():
         corr_data.append(row.to_dict())
     
-    # Datos para pairplot (muestra reducida)
+    # Datos para pairplot (existente)
     sample_df = df.sample(n=100)
     pairplot_data = sample_df[['SALES', 'QUANTITYORDERED', 'PRICEEACH', 'MSRP', 'MONTH_ID']].to_dict(orient='records')
     
-    # Distribuciones
+    # Distribuciones (existentes)
     sales_dist = df['SALES'].describe().to_dict()
     qty_dist = df['QUANTITYORDERED'].describe().to_dict()
+    
+    # Nuevos datos para las gráficas faltantes
+    # 1. Gráfica de línea de ventas
+    sales_df_group = df.groupby('MONTH_ID')['SALES'].sum().reset_index()
+    sales_trend = {
+        'months': sales_df_group['MONTH_ID'].tolist(),
+        'sales': sales_df_group['SALES'].tolist()
+    }
+    
+    # 2. Datos para distplots (excluyendo ORDERLINENUMBER)
+    distplot_data = {}
+    for i in range(8):
+        col_name = df.columns[i]
+        if col_name != 'ORDERLINENUMBER':
+            distplot_data[col_name] = df[col_name].apply(float).tolist()
     
     return jsonify({
         "correlation": corr_data,
         "pairplot": pairplot_data,
         "sales_dist": sales_dist,
-        "qty_dist": qty_dist
+        "qty_dist": qty_dist,
+        "sales_trend": sales_trend,  # Nueva
+        "distplots": distplot_data   # Nueva
     })
 
 @app.route('/api/task5')
@@ -227,14 +245,22 @@ def task6():
 
 @app.route('/api/task7')
 def task7():
+    """
+    Endpoint para el análisis de clusters con K-Means
+    Devuelve:
+    - Datos para visualización 2D
+    - Estadísticas de clusters
+    - Centroides
+    - Histogramas por cluster
+    """
+    # Cargar y preparar datos
     df = load_data()
     scaler = StandardScaler()
     sales_df_scaled = scaler.fit_transform(df)
     
-    # Aplicar K-Means con k=5
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    kmeans.fit(sales_df_scaled)
-    labels = kmeans.labels_
+    # Aplicar K-Means (5 clusters)
+    kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+    labels = kmeans.fit_predict(sales_df_scaled)
     
     # PCA para visualización 2D
     pca = PCA(n_components=2)
@@ -243,10 +269,10 @@ def task7():
     pca_df['cluster'] = labels
     
     # Estadísticas por cluster
-    df['cluster'] = labels
+    sale_df_cluster = pd.concat([df, pd.DataFrame({'cluster':labels})], axis=1)
     cluster_stats = []
     for i in range(5):
-        cluster_data = df[df['cluster'] == i]
+        cluster_data = sale_df_cluster[sale_df_cluster['cluster'] == i]
         stats = {
             "cluster": i,
             "size": len(cluster_data),
@@ -256,10 +282,31 @@ def task7():
         }
         cluster_stats.append(stats)
     
+    # Centroides (transformados inversamente para interpretación)
+    cluster_centers = scaler.inverse_transform(kmeans.cluster_centers_)
+    cluster_centers = pd.DataFrame(data=cluster_centers, columns=df.columns)
+    
+    # Datos para histogramas (primeras 8 columnas)
+    histograms = {}
+    for col in df.columns[:8]:
+        histograms[col] = []
+        for cluster_num in range(5):
+            cluster_data = sale_df_cluster[sale_df_cluster['cluster'] == cluster_num][col]
+            histograms[col].append(cluster_data.tolist())
+    
     return jsonify({
-        "clusters": pca_df.to_dict(orient='records'),
-        "cluster_stats": cluster_stats,
-        "centroids": pca.transform(kmeans.cluster_centers_).tolist()
+        "clusters": pca_df.to_dict(orient='records'),  # Para visualización 2D
+        "cluster_stats": cluster_stats,  # Estadísticas
+        "centroids": cluster_centers.to_dict(orient='records'),  # Centroides
+        "histograms": histograms,  # Datos para histogramas
+        "feature_names": df.columns[:8].tolist(),  # Nombres de columnas
+        "cluster_descriptions": [  # Descripciones interpretativas
+            "Clientes que compran en grandes cantidades y gastan mucho",
+            "Clientes que prefieren productos premium",
+            "Clientes ocasionales con bajo gasto",
+            "Clientes estacionales con gasto moderado",
+            "Clientes regulares con gasto consistente"
+        ]
     })
 
 @app.route('/api/task8')
@@ -328,6 +375,81 @@ def task9():
                 "Computacionalmente más costoso"
             ]
         }
+    })
+
+@app.route('/api/task10')
+def task10():
+    df = load_data()
+    scaler = StandardScaler()
+    sales_df_scaled = scaler.fit_transform(df)
+    
+    # Reducción de dimensionalidad con PCA
+    pca = PCA(n_components=8)
+    reduced_data = pca.fit_transform(sales_df_scaled)
+    
+    # Gráfica de elbow method
+    scores = []
+    range_values = range(1, 15)
+    for i in range_values:
+        kmeans = KMeans(n_clusters=i, random_state=42)
+        kmeans.fit(reduced_data)
+        scores.append(kmeans.inertia_)
+    
+    # Clustering con 3 clusters
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    labels = kmeans.fit_predict(reduced_data)
+    
+    # PCA para visualización 3D
+    pca_3d = PCA(n_components=3)
+    principal_comp = pca_3d.fit_transform(reduced_data)
+    pca_df = pd.DataFrame(data=principal_comp, columns=['x', 'y', 'z'])
+    pca_df['cluster'] = labels
+    
+    # Preparar datos para histogramas (solo una vez)
+    df_cluster = pd.concat([df, pd.DataFrame({'cluster': labels})], axis=1)
+    histograms = {}
+    for col in df.columns[:8]:  # Primeras 8 columnas
+        histograms[col] = []
+        for cluster_num in range(3):  # 3 clusters
+            cluster_data = df_cluster[df_cluster['cluster'] == cluster_num][col]
+            histograms[col].append({
+                'values': cluster_data.tolist(),
+                'mean': float(cluster_data.mean()),
+                'std': float(cluster_data.std()),
+                'min': float(cluster_data.min()),
+                'max': float(cluster_data.max())
+            })
+    
+    # Estadísticas por cluster
+    cluster_stats = []
+    for i in range(3):
+        cluster_data = df_cluster[df_cluster['cluster'] == i]
+        stats = {
+            'size': len(cluster_data),
+            'avg_quantity': float(cluster_data['QUANTITYORDERED'].mean()),
+            'avg_price': float(cluster_data['PRICEEACH'].mean()),
+            'avg_sales': float(cluster_data['SALES'].mean())
+        }
+        cluster_stats.append(stats)
+    
+    return jsonify({
+        "points": pca_df.to_dict(orient='records'),
+        "histograms": histograms,
+        "cluster_stats": cluster_stats,
+        "feature_names": df.columns[:8].tolist(),
+        "elbow_data": {
+            "clusters": list(range_values),
+            "scores": scores
+        },
+        "cluster_descriptions": [
+            "Clientes que compran en grandes cantidades (media: {:.1f} unidades) y prefieren productos caros (${:.2f} promedio)".format(
+                cluster_stats[0]['avg_quantity'], cluster_stats[0]['avg_price']),
+            "Clientes con compras promedio (media: {:.1f} unidades) que prefieren productos de alto precio (${:.2f} promedio)".format(
+                cluster_stats[1]['avg_quantity'], cluster_stats[1]['avg_price']),
+            "Clientes que compran en pequeñas cantidades (media: {:.1f} unidades) y prefieren productos económicos (${:.2f} promedio)".format(
+                cluster_stats[2]['avg_quantity'], cluster_stats[2]['avg_price'])
+        ],
+        "cluster_colors": ["#4CA1AF", "#2C3E50", "#D4B483"]
     })
 
 if __name__ == '__main__':

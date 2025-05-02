@@ -46,6 +46,9 @@ function loadTaskData(taskId) {
                 case 'task9':
                     renderTask9(data);
                     break;
+                case 'task10':
+                    renderTask10(data);
+                    break;
             }
         })
         .catch(error => console.error('Error:', error));
@@ -286,6 +289,69 @@ function renderTask4(data) {
         yaxis: { title: 'Frecuencia' },
         margin: { t: 40, b: 60, l: 60, r: 20 }
     });
+
+    // 1. Agregar gráfica de línea de ventas
+    Plotly.newPlot('task4-sales-trend', [{
+        type: 'scatter',
+        mode: 'lines+markers',
+        x: data.sales_trend.months,
+        y: data.sales_trend.sales,
+        line: { color: '#4CA1AF', width: 3 },
+        marker: { size: 8, color: '#2C3E50' }
+    }], {
+        title: 'Tendencia de Ventas por Mes',
+        xaxis: { title: 'Mes' },
+        yaxis: { title: 'Ventas Totales' },
+        margin: { t: 40, b: 60, l: 60, r: 20 }
+    });
+
+    // 2. Agregar distplots
+    const distplotContainer = document.getElementById('task4-distplots');
+    distplotContainer.innerHTML = '<h4>Distribuciones de Variables</h4><div class="row"></div>';
+    const rowDiv = distplotContainer.querySelector('.row');
+    
+    Object.entries(data.distplots).forEach(([colName, values], index) => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'col-md-6';
+        
+        const plotDiv = document.createElement('div');
+        plotDiv.id = `task4-distplot-${colName}`;
+        plotDiv.className = 'plotly-graph mb-4';
+        
+        colDiv.appendChild(plotDiv);
+        rowDiv.appendChild(colDiv);
+        
+        // Crear histograma y KDE (aproximación de distplot)
+        const trace1 = {
+            x: values,
+            type: 'histogram',
+            name: 'Histograma',
+            marker: { color: '#2C3E50' },
+            opacity: 0.7
+        };
+        
+        const trace2 = {
+            x: values,
+            type: 'histogram',
+            histnorm: 'probability density',
+            name: 'Densidad',
+            marker: { color: '#4CA1AF' },
+            opacity: 0.5,
+            yaxis: 'y2'
+        };
+        
+        Plotly.newPlot(plotDiv.id, [trace1, trace2], {
+            title: `Distribución de ${colName}`,
+            xaxis: { title: colName },
+            yaxis: { title: 'Conteo' },
+            yaxis2: {
+                title: 'Densidad',
+                overlaying: 'y',
+                side: 'right'
+            },
+            margin: { t: 40, b: 60, l: 60, r: 60 }
+        });
+    });
 }
 
 function renderTask5(data) {
@@ -390,53 +456,55 @@ function renderTask6(data) {
 }
 
 function renderTask7(data) {
-    // Visualización de clusters 2D
+    // 1. Visualización 2D de clusters
     const clusterColors = ['#4CA1AF', '#2C3E50', '#D4B483', '#C1666B', '#7A9CC6'];
     
-    const traces = [];
-    for (let i = 0; i < 5; i++) {
-        const clusterData = data.clusters.filter(c => c.cluster === i);
-        traces.push({
-            x: clusterData.map(d => d.x),
-            y: clusterData.map(d => d.y),
-            mode: 'markers',
-            name: `Cluster ${i}`,
-            marker: {
-                size: 8,
-                color: clusterColors[i]
-            }
-        });
-    }
-
+    // Crear trazas para cada cluster
+    const traces = data.clusters.reduce((acc, point) => {
+        if (!acc[point.cluster]) {
+            acc[point.cluster] = {
+                x: [],
+                y: [],
+                mode: 'markers',
+                type: 'scatter',
+                name: `Cluster ${point.cluster}`,
+                marker: { color: clusterColors[point.cluster], size: 8 }
+            };
+        }
+        acc[point.cluster].x.push(point.x);
+        acc[point.cluster].y.push(point.y);
+        return acc;
+    }, {});
+    
     // Añadir centroides
-    traces.push({
-        x: data.centroids.map(c => c[0]),
-        y: data.centroids.map(c => c[1]),
+    traces['centroids'] = {
+        x: data.centroids.map((_, i) => data.centroids[i].x || 0),
+        y: data.centroids.map((_, i) => data.centroids[i].y || 0),
         mode: 'markers',
         name: 'Centroides',
         marker: {
-            size: 12,
-            color: clusterColors.slice(0, 5),
             symbol: 'x',
+            size: 12,
+            color: clusterColors,
             line: { width: 2 }
         }
-    });
-
-    Plotly.newPlot('task7-clusters', traces, {
+    };
+    
+    // Graficar
+    Plotly.newPlot('task7-clusters', Object.values(traces), {
         title: 'Visualización 2D de Clusters (PCA)',
         xaxis: { title: 'Componente Principal 1' },
         yaxis: { title: 'Componente Principal 2' },
-        margin: { t: 40, b: 60, l: 60, r: 20 },
-        legend: { orientation: 'h', y: 1.1 }
+        margin: { t: 40, b: 60, l: 60, r: 20 }
     });
-
-    // Estadísticas por cluster
+    
+    // 2. Estadísticas por cluster
     const statsHtml = data.cluster_stats.map(stats => `
-        <div class="card cluster-card">
+        <div class="card cluster-card" style="border-left: 5px solid ${clusterColors[stats.cluster]}">
             <div class="card-body">
                 <h5 class="card-title">Cluster ${stats.cluster}</h5>
                 <p class="card-text">
-                    <strong>Tamaño:</strong> ${stats.size}<br>
+                    <strong>Tamaño:</strong> ${stats.size} clientes<br>
                     <strong>Cantidad Promedio:</strong> ${stats.avg_quantity.toFixed(1)}<br>
                     <strong>Precio Promedio:</strong> $${stats.avg_price.toFixed(2)}<br>
                     <strong>Ventas Totales:</strong> $${stats.total_sales.toFixed(2)}
@@ -444,34 +512,53 @@ function renderTask7(data) {
             </div>
         </div>
     `).join('');
-
     document.getElementById('task7-stats').innerHTML = statsHtml;
-
-    // Descripción de clusters
-    const clusterDescriptions = [
-        "Clientes que compran en grandes cantidades y gastan mucho",
-        "Clientes que prefieren productos premium",
-        "Clientes ocasionales con bajo gasto",
-        "Clientes estacionales con gasto moderado",
-        "Clientes regulares con gasto consistente"
-    ];
-
+    
+    // 3. Descripciones de clusters
     const descHtml = data.cluster_stats.map((stats, i) => `
         <div class="col-md-4 mb-3">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-header" style="background-color: ${clusterColors[i]}; color: white;">
                     Cluster ${stats.cluster}
                 </div>
                 <div class="card-body">
-                    <p class="card-text">${clusterDescriptions[i]}</p>
+                    <p class="card-text">${data.cluster_descriptions[i]}</p>
                 </div>
             </div>
         </div>
     `).join('');
-
     document.getElementById('task7-cluster-desc').innerHTML = descHtml;
+    
+    // 4. Histogramas por cluster
+    const histContainer = document.getElementById('task7-histograms');
+    histContainer.innerHTML = '<h4 class="mb-4">Distribuciones por Cluster</h4>';
+    
+    data.feature_names.forEach(feature => {
+        const featureDiv = document.createElement('div');
+        featureDiv.className = 'mb-5';
+        featureDiv.innerHTML = `<h5>${feature}</h5><div class="row" id="hist-row-${feature}"></div>`;
+        histContainer.appendChild(featureDiv);
+        
+        const row = document.getElementById(`hist-row-${feature}`);
+        
+        // Crear histograma para cada cluster (5 en total)
+        for (let i = 0; i < 5; i++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'col-md-2-4';
+            row.appendChild(colDiv);
+            
+            Plotly.newPlot(colDiv, [{
+                type: 'histogram',
+                x: data.histograms[feature][i],
+                name: `Cluster ${i}`,
+                marker: { color: clusterColors[i] }
+            }], {
+                title: `Cluster ${i}`,
+                margin: { t: 30, b: 40, l: 40, r: 20 }
+            });
+        }
+    });
 }
-
 function renderTask8(data) {
     // Visualización 3D
     const clusterColors = ['#4CA1AF', '#2C3E50', '#D4B483', '#C1666B', '#7A9CC6'];
@@ -526,6 +613,8 @@ function renderTask8(data) {
         margin: { t: 40, b: 60, l: 60, r: 20 },
         showlegend: true
     });
+
+    
 }
 
 function renderTask9(data) {
@@ -611,6 +700,195 @@ function renderTask9(data) {
         const li = document.createElement('li');
         li.textContent = con;
         consList.appendChild(li);
+    });
+}
+
+function renderTask10(data) {
+    // Limpiar y preparar el contenedor principal
+    const container = document.getElementById('task10');
+    container.innerHTML = `
+        <div class="task-container">
+            <h2 class="mb-4">TASK 10: Reducción de Dimensionalidad y Clustering</h2>
+            
+            <!-- Sección Elbow Method -->
+            <div class="plot-container">
+                <h4>Método del Codo para Determinar Número de Clusters</h4>
+                <div id="task10-elbow" class="plotly-graph"></div>
+            </div>
+            
+            <!-- Visualización 3D -->
+            <div class="plot-container mt-4">
+                <h4>Visualización 3D de Clusters</h4>
+                <div id="task10-3d" class="plotly-graph"></div>
+            </div>
+            
+            <!-- Histogramas -->
+            <div class="plot-container mt-4">
+                <h4>Distribuciones por Cluster</h4>
+                <div id="task10-histograms" class="mt-3"></div>
+            </div>
+            
+            <!-- Descripciones -->
+            <div class="conclusion-box mt-4">
+                <h4>Interpretación de los Clusters</h4>
+                <div class="row" id="task10-cluster-desc"></div>
+            </div>
+        </div>
+    `;
+
+    // 1. Gráfica Elbow Method
+    Plotly.newPlot('task10-elbow', [{
+        x: data.elbow_data.clusters,
+        y: data.elbow_data.scores,
+        mode: 'lines+markers',
+        type: 'scatter',
+        line: { color: '#4CA1AF', width: 2 },
+        marker: { 
+            symbol: 'x',
+            size: 8,
+            color: '#2C3E50'
+        }
+    }], {
+        title: 'Método del Codo para Determinar Número Óptimo de Clusters',
+        xaxis: { title: 'Número de Clusters' },
+        yaxis: { title: 'Inercia (Score)' },
+        margin: { t: 40, b: 60, l: 60, r: 20 }
+    });
+
+    // 2. Visualización 3D
+    const traces = [];
+    for (let i = 0; i < 3; i++) {
+        const clusterData = data.points.filter(p => p.cluster === i);
+        traces.push({
+            x: clusterData.map(d => d.x),
+            y: clusterData.map(d => d.y),
+            z: clusterData.map(d => d.z),
+            mode: 'markers',
+            type: 'scatter3d',
+            name: `Cluster ${i}`,
+            marker: {
+                size: 5,
+                color: data.cluster_colors[i],
+                opacity: 0.8
+            }
+        });
+    }
+
+    Plotly.newPlot('task10-3d', traces, {
+        title: 'Visualización 3D de Clusters',
+        margin: { t: 40, b: 40, l: 40, r: 20 },
+        scene: {
+            xaxis: { title: 'Componente Principal 1' },
+            yaxis: { title: 'Componente Principal 2' },
+            zaxis: { title: 'Componente Principal 3' }
+        }
+    });
+
+    // 3. Histogramas por cluster - Implementación garantizada
+    const histContainer = document.getElementById('task10-histograms');
+    histContainer.innerHTML = ''; // Limpiar contenedor
+
+    data.feature_names.forEach(feature => {
+        // Crear sección para cada característica
+        const featureSection = document.createElement('div');
+        featureSection.className = 'feature-section mb-5 p-3 bg-light rounded';
+        
+        // Título de la característica
+        const title = document.createElement('h5');
+        title.className = 'text-center mb-4';
+        title.textContent = feature;
+        featureSection.appendChild(title);
+        
+        // Fila para los histogramas
+        const row = document.createElement('div');
+        row.className = 'row';
+        
+        // Para cada cluster (3 en total)
+        for (let cluster = 0; cluster < 3; cluster++) {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-3';
+            
+            // Tarjeta para el histograma
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            
+            // Encabezado de la tarjeta
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'card-header text-white';
+            cardHeader.style.backgroundColor = data.cluster_colors[cluster];
+            cardHeader.textContent = `Cluster ${cluster}`;
+            
+            // Cuerpo de la tarjeta
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            
+            // Contenedor del gráfico
+            const plotDiv = document.createElement('div');
+            plotDiv.id = `hist-${feature}-${cluster}`;
+            plotDiv.style.height = '250px';
+            
+            // Estadísticas
+            const stats = data.histograms[feature][cluster];
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'mt-2 small';
+            statsDiv.innerHTML = `
+                <p><strong>Media:</strong> ${stats.mean.toFixed(2)}</p>
+                <p><strong>Desv. Est.:</strong> ${stats.std.toFixed(2)}</p>
+                <p><strong>Rango:</strong> ${stats.min.toFixed(2)} a ${stats.max.toFixed(2)}</p>
+            `;
+            
+            // Ensamblar componentes
+            cardBody.appendChild(plotDiv);
+            cardBody.appendChild(statsDiv);
+            card.appendChild(cardHeader);
+            card.appendChild(cardBody);
+            col.appendChild(card);
+            row.appendChild(col);
+            
+            // Renderizar histograma con Plotly
+            Plotly.newPlot(plotDiv.id, [{
+                type: 'histogram',
+                x: stats.values,
+                marker: { 
+                    color: data.cluster_colors[cluster],
+                    line: { color: 'white', width: 1 }
+                },
+                opacity: 0.7
+            }], {
+                margin: { t: 20, b: 40, l: 40, r: 20 },
+                xaxis: { title: feature },
+                yaxis: { title: 'Frecuencia' }
+            });
+        }
+        
+        featureSection.appendChild(row);
+        histContainer.appendChild(featureSection);
+    });
+
+    // 4. Descripciones de Clusters
+    const descContainer = document.getElementById('task10-cluster-desc');
+    descContainer.innerHTML = ''; // Limpiar contenedor
+    
+    data.cluster_descriptions.forEach((desc, i) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-4 mb-3';
+        
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header text-white';
+        cardHeader.style.backgroundColor = data.cluster_colors[i];
+        cardHeader.innerHTML = `<h5 class="mb-0">Cluster ${i}</h5>`;
+        
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        cardBody.innerHTML = `<p class="card-text">${desc}</p>`;
+        
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        col.appendChild(card);
+        descContainer.appendChild(col);
     });
 }
 

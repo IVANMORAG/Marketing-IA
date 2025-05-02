@@ -101,6 +101,129 @@
             padding: 2rem 0;
             margin-top: 3rem;
         }
+
+        /* Estilos para Task 7 */
+        .cluster-stats {
+            display: grid;
+            gap: 15px;
+        }
+
+        .cluster-card {
+            transition: transform 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .cluster-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        #task7-histograms .row {
+            margin-bottom: 30px;
+        }
+
+        .col-md-2-4 {
+            flex: 0 0 20%;
+            max-width: 20%;
+            padding: 0 10px;
+        }
+
+        .plotly-graph-sm {
+            height: 250px;
+            width: 100%;
+        }
+
+        #task10-histograms .row {
+            margin-bottom: 30px;
+        }
+
+        #task10-histograms h5 {
+            font-size: 1rem;
+            color: #2C3E50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        /* Estilos para los histogramas */
+        .histograms-grid {
+            margin-top: 20px;
+        }
+
+        .feature-histograms {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .histogram-container {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            height: 100%;
+        }
+
+        .histogram-stats {
+            padding: 10px;
+            font-size: 0.9rem;
+            background: white;
+            border-radius: 0 0 6px 6px;
+        }
+
+        /* Estilos para las tarjetas de cluster */
+        .cluster-card {
+            height: 100%;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .cluster-stats {
+            padding-left: 20px;
+        }
+
+        .cluster-stats li {
+            margin-bottom: 5px;
+        }
+
+        .cluster-description {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        /* Estilos para Task 10 */
+.plotly-graph {
+    height: 500px;
+    width: 100%;
+}
+
+.feature-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.conclusion-box {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
     </style>
 </head>
 <body>
@@ -141,6 +264,9 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="task9-tab" data-bs-toggle="tab" data-bs-target="#task9" type="button">TASK 9</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="task10-tab" data-bs-toggle="tab" data-bs-target="#task10" type="button">TASK 10</button>
             </li>
         </ul>
 
@@ -267,10 +393,18 @@
             </div>
 
             <!-- Task 4 -->
+            <!-- Task 4 -->
             <div class="tab-pane fade" id="task4" role="tabpanel">
                 <div class="task-container">
                     <h2 class="mb-4">TASK 4: Análisis Exploratorio (Parte 2)</h2>
                     
+                    <!-- Nueva gráfica de tendencia de ventas -->
+                    <div class="plot-container">
+                        <h4>Tendencia de Ventas Mensuales</h4>
+                        <div id="task4-sales-trend" class="plotly-graph"></div>
+                    </div>
+                    
+                    <!-- Contenedores existentes (no modificar) -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="plot-container">
@@ -286,6 +420,12 @@
                         </div>
                     </div>
                     
+                    <!-- Nueva sección para distplots -->
+                    <div class="plot-container">
+                        <div id="task4-distplots"></div>
+                    </div>
+                    
+                    <!-- Contenedores existentes (no modificar) -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="plot-container">
@@ -308,6 +448,7 @@
                             <li>Los productos con mayor MSRP tienden a tener precios unitarios más altos</li>
                             <li>Existe una relación positiva entre precio y volumen de ventas</li>
                             <li>La distribución de ventas está sesgada hacia valores bajos</li>
+                            <li>Se observa tendencia estacional en las ventas mensuales</li>
                         </ol>
                     </div>
                 </div>
@@ -400,37 +541,35 @@
                 </div>
             </div>
 
-            <!-- Task 7 -->
+                <!-- Task 7 -->
             <div class="tab-pane fade" id="task7" role="tabpanel">
                 <div class="task-container">
-                    <h2 class="mb-4">TASK 7: Aplicación de K-Means</h2>
+                    <h2 class="mb-4">TASK 7: Segmentación de Clientes con K-Means</h2>
                     
+                    <!-- Sección 1: Visualización 2D -->
                     <div class="row">
                         <div class="col-md-7">
                             <div class="plot-container">
-                                <h4>Visualización de Clusters (2D)</h4>
+                                <h4>Visualización de Clusters</h4>
                                 <div id="task7-clusters" class="plotly-graph"></div>
                             </div>
                         </div>
                         <div class="col-md-5">
                             <div class="plot-container">
                                 <h4>Estadísticas por Cluster</h4>
-                                <div id="task7-stats"></div>
+                                <div id="task7-stats" class="cluster-stats"></div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="plot-container">
-                                <h4>Distribución de Ventas por Cluster</h4>
-                                <div id="task7-sales-cluster" class="plotly-graph"></div>
-                            </div>
-                        </div>
+                    <!-- Sección 2: Histogramas -->
+                    <div class="plot-container mt-4">
+                        <div id="task7-histograms"></div>
                     </div>
                     
-                    <div class="conclusion-box">
-                        <h4>Descripción de los Clusters</h4>
+                    <!-- Sección 3: Interpretación -->
+                    <div class="conclusion-box mt-4">
+                        <h4>Interpretación de los Clusters</h4>
                         <div class="row" id="task7-cluster-desc"></div>
                     </div>
                 </div>
@@ -518,6 +657,28 @@
                     </div>
                 </div>
             </div>
+
+            <div class="tab-pane fade" id="task10" role="tabpanel">
+                <div class="task-container">
+                    <h2 class="mb-4">TASK 10: Reducción de Dimensionalidad</h2>
+                    
+                    <div class="plot-container">
+                        <h4>Visualización 3D de Clusters</h4>
+                        <div id="task10-3d" class="plotly-graph"></div>
+                    </div>
+                    
+                    <div class="plot-container mt-4">
+                        <div id="task10-histograms"></div>
+                    </div>
+                    
+                    <div class="conclusion-box mt-4">
+                        <h4>Interpretación de los Clusters</h4>
+                        <div class="row" id="task10-cluster-desc"></div>
+                    </div>
+                </div>
+            </div>
+
+            
         </div>
     </div>
 
