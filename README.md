@@ -1,7 +1,7 @@
 # IA en Marketing - Análisis de Ventas con API
 
 <a target="_blank" align="center">
-  <img align="center" height="450" width="1000" alt="GIF" src="https://github.com/IVANMORAG/facial-point-detection/blob/main/recursos/Facial-Point-detector.gif">
+  <img align="center" height="450" width="1000" alt="GIF" src="https://github.com/IVANMORAG/Marketing-IA/blob/main/recursos/Marketing-IA.gif">
 </a>
 
 <br>
