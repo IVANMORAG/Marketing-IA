@@ -193,37 +193,50 @@
             color: #555;
         }
 
-        /* Estilos para Task 10 */
-.plotly-graph {
-    height: 500px;
-    width: 100%;
-}
+                /* Estilos para Task 10 */
+        .plotly-graph {
+            height: 500px;
+            width: 100%;
+        }
 
-.feature-section {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
+        .feature-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
 
-.card {
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
 
-.card:hover {
-    transform: translateY(-5px);
-}
+        .card:hover {
+            transform: translateY(-5px);
+        }
 
-.card-header {
-    font-weight: bold;
-}
+        .card-header {
+            font-weight: bold;
+        }
 
-.conclusion-box {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
-}
+        .conclusion-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .image-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+    }
+    .central-image {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 8px; /* Opcional: para esquinas redondeadas */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Opcional: para sombra */
+    }
     </style>
 </head>
 <body>
@@ -277,9 +290,10 @@
                 <div class="task-container">
                     <h2 class="mb-4">TASK 1: Entender el Problema y Caso de Negocio</h2>
                     
-                    <div id="task1-diagram" class="plot-container">
-                        <div class="plotly-graph"></div>
+                    <div id="task1-diagram" class="image-container">
+                        <img src="../static/images/uno.png" alt="Descripción de la imagen" class="central-image">
                     </div>
+                    
                     
                     <div class="highlight-box">
                         <h4>Objetivo del Análisis</h4>
@@ -685,7 +699,7 @@
     <!-- Footer -->
     <footer class="text-center py-4 mt-5">
         <div class="container">
-            <p class="mb-0">Proyecto de Análisis de Marketing con IA &copy; 2023</p>
+            <p class="mb-0">Proyecto de Análisis de Marketing con IA &copy; 2025; Iván Mora</p>
         </div>
     </footer>
 

@@ -722,17 +722,6 @@ function renderTask10(data) {
                 <div id="task10-3d" class="plotly-graph"></div>
             </div>
             
-            <!-- Histogramas -->
-            <div class="plot-container mt-4">
-                <h4>Distribuciones por Cluster</h4>
-                <div id="task10-histograms" class="mt-3"></div>
-            </div>
-            
-            <!-- Descripciones -->
-            <div class="conclusion-box mt-4">
-                <h4>Interpretación de los Clusters</h4>
-                <div class="row" id="task10-cluster-desc"></div>
-            </div>
         </div>
     `;
 
